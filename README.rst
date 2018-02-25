@@ -15,7 +15,7 @@ PyFields - A fields analysis package
 
 
 This module has been written to carry out analysis on 2D and 3D fields,
-like velocity, concentration, temperature, ... fields.
+like velocity, concentration, temperature, ... .
 It can handle sets of fields, to analyze time evolution of the aforementioned fields.
 This module includes methods for importing field, analysing them, display them and export them in other format.
 
@@ -24,5 +24,6 @@ This project is hosted on Github_.
 Full documentation is available on ReadTheDocs_.
 
 .. _Github: https://github.com/galaunay/PyFields
+.. _ReadTheDocs:
 
 .. _end-intro:
