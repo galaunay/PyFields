@@ -23,3 +23,4 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from .core.field import Field
+from .core.scalarfield import ScalarField

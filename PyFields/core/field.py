@@ -38,7 +38,6 @@ class Field(object):
         self.__is_axis_y_regular = None
         self.__dx = None
         self.__dy = None
-        self.__shape = [None, None]
         self.__unit_x = make_unit('')
         self.__unit_y = make_unit('')
         # fill
@@ -60,9 +59,6 @@ class Field(object):
     def axis_x(self, new_axis_x):
         new_axis_x = np.sort(np.asarray(new_axis_x, dtype=float))
         if new_axis_x.shape == self.__axis_x.shape or len(self.__axis_x) == 0:
-            # update length if necessary
-            if len(self.__axis_x) == 0:
-                self.__shape[0] = len(new_axis_x)
             # update axis values
             self.__axis_x = new_axis_x
             # check if regular
@@ -97,9 +93,6 @@ class Field(object):
     def axis_y(self, new_axis_y):
         new_axis_y = np.sort(np.asarray(new_axis_y, dtype=float))
         if new_axis_y.shape == self.__axis_y.shape or len(self.__axis_y) == 0:
-            # update length if necessary
-            if len(self.__axis_y) == 0:
-                self.__shape[1] = len(new_axis_y)
             # update axis values
             self.__axis_y = new_axis_y
             # check if regular
@@ -171,7 +164,7 @@ class Field(object):
 
     @property
     def shape(self):
-        return self.__shape
+        return (len(self.axis_x), len(self.axis_y))
 
     def __eq__(self, other):
         if not isinstance(other, Field):
@@ -325,7 +318,8 @@ class Field(object):
     #             inds.append([x, y])
     #     return np.array(inds, subok=True)
 
-    def scale(self, scalex=None, scaley=None, inplace=False):
+    def scale(self, scalex=None, scaley=None, inplace=False,
+              output_reverse=False):
         """
         Scale the Field.
 
@@ -387,7 +381,12 @@ class Field(object):
             tmp_f.axis_y = tmp_f.axis_y[::-1]
         # returning
         if not inplace:
-            return tmp_f
+            if output_reverse:
+                return reversex, reversey, tmp_f
+            else:
+                return tmp_f
+        if output_reverse:
+            return reversex, reversey
 
     def rotate(self, angle, inplace=False):
         """
