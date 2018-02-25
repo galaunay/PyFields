@@ -1,0 +1,12 @@
+language: python
+sudo: no
+python:
+  - 3.3
+  - 3.4
+  - 3.5
+  - 3.6
+before_install:
+install:
+script:
+  - pytest
+after_success:
