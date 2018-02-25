@@ -180,9 +180,9 @@ class Field(object):
             return False
         if not np.all(self.axis_y == other.axis_y):
             return False
-        if not np.all(self.unit_y == other.unit_y):
+        if not self.unit_y.strUnit() == other.unit_y.strUnit():
             return False
-        if not np.all(self.unit_x == other.unit_x):
+        if not self.unit_x.strUnit() == other.unit_x.strUnit():
             return False
         return True
 

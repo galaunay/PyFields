@@ -166,6 +166,28 @@ class TestField(object):
             with pytest.raises(ValueError):
                 F.unit_y = 8.3*units.s/units.kg
 
+    def test_iter(self):
+        # should iterate on axis
+        xs = []
+        ys = []
+        for (i, j), (x, y) in self.F:
+            xs.append(x)
+            ys.append(y)
+            assert self.F.axis_x[i] == x
+            assert self.F.axis_y[j] == y
+
+    def test_eq(self):
+        # should test equality
+        assert not self.F == self.F_nounits
+        assert self.F == self.F_reversed_axis
+        assert not self.F == self.F_irregular_axis
+        tmp_F = self.F.copy()
+        tmp_F.scale(10, inplace=True)
+        assert not self.F == tmp_F
+        tmp_F = self.F.copy()
+        tmp_F.scale(scaley=10, inplace=True)
+        assert not self.F == tmp_F
+
     def test_get_indice_on_axis(self):
         # Should return bounds indice on axis
         bds = self.F.get_indice_on_axis('x', 7.4, kind='bounds')
@@ -189,6 +211,13 @@ class TestField(object):
         valm = self.F.axis_y[nst - 1]
         assert abs(val - 5.78) < abs(valp - 5.78)
         assert abs(val - 5.78) < abs(valm - 5.78)
+        val = self.F.axis_y[20]
+        nst = self.F.get_indice_on_axis('y', val, kind='nearest')
+        val = self.F.axis_y[nst]
+        valp = self.F.axis_y[nst + 1]
+        valm = self.F.axis_y[nst - 1]
+        assert abs(val - val) < abs(valp - val)
+        assert abs(val - val) < abs(valm - val)
         # Should return decimal indice
         dec = self.F.get_indice_on_axis('x', 11.91, kind='decimal')
         assert dec == 85.57555555555555
@@ -228,6 +257,18 @@ class TestField(object):
             assert np.all(tmp_F.axis_x == 10*F.axis_x)
             assert tmp_F.dy == 1.43*F.dy
             assert np.all(tmp_F.axis_y == 1.43*F.axis_y)
+            # neg
+            tmp_F = F.scale(scalex=-10)
+            assert np.isclose(tmp_F.dx, 10*F.dx)
+            assert np.allclose(tmp_F.axis_x, np.sort(-10*F.axis_x))
+            tmp_F = F.scale(scaley=-1.43)
+            assert np.isclose(tmp_F.dy, 1.43*F.dy)
+            assert np.all(tmp_F.axis_y == np.sort(-1.43*F.axis_y))
+            tmp_F = F.scale(scalex=-10, scaley=-1.43)
+            assert np.isclose(tmp_F.dx, 10*F.dx)
+            assert np.allclose(tmp_F.axis_x, np.sort(-10*F.axis_x))
+            assert np.isclose(tmp_F.dy, 1.43*F.dy)
+            assert np.all(tmp_F.axis_y == np.sort(-1.43*F.axis_y))
         # should be scalable by units
         u1 = 10*units.m/units.s
         tmp_F = self.F.scale(scalex=u1)
@@ -259,6 +300,10 @@ class TestField(object):
             self.F.scale('test')
         with pytest.raises(TypeError):
             self.F.scale(self.F)
+        with pytest.raises(TypeError):
+            self.F.scale(scaley='test')
+        with pytest.raises(TypeError):
+            self.F.scale(scaley=self.F)
 
     def test_rotate(self):
         # should rotate
@@ -268,6 +313,9 @@ class TestField(object):
         tmp_F = self.F.rotate(-90)
         assert np.all(tmp_F.axis_x == self.F.axis_y)
         assert np.all(tmp_F.axis_y == -self.F.axis_x[::-1])
+        tmp_F = self.F.rotate(-180)
+        assert np.all(tmp_F.axis_x == -self.F.axis_x[::-1])
+        assert np.all(tmp_F.axis_y == -self.F.axis_y[::-1])
         # should not modify source
         save_F = self.F.copy()
         self.F.rotate(90)
@@ -277,6 +325,11 @@ class TestField(object):
         tmp_F.rotate(270, inplace=True)
         assert np.all(tmp_F.axis_x == self.F.axis_y)
         assert np.all(tmp_F.axis_y == -self.F.axis_x[::-1])
+        # should raise an error if angle is not a multiple of 90
+        with pytest.raises(ValueError):
+            self.F.rotate(43)
+        with pytest.raises(TypeError):
+            self.F.rotate(90, 4)
 
     def test_change_unit(self):
         # should change unit
@@ -324,6 +377,18 @@ class TestField(object):
         assert len(tmp_F.axis_y) == 59
         assert np.allclose(tmp_F.axis_x, self.F.axis_x[3:31])
         assert np.allclose(tmp_F.axis_y, self.F.axis_y[2:61])
+        #
+        tmp_F = self.F.crop(intervx=[3, 30], ind=True)
+        assert len(tmp_F.axis_x) == 28
+        assert len(tmp_F.axis_y) == 125
+        assert np.allclose(tmp_F.axis_x, self.F.axis_x[3:31])
+        assert np.allclose(tmp_F.axis_y, self.F.axis_y)
+        #
+        tmp_F = self.F.crop(intervy=[2, 60], ind=True)
+        assert len(tmp_F.axis_x) == 98
+        assert len(tmp_F.axis_y) == 59
+        assert np.allclose(tmp_F.axis_x, self.F.axis_x)
+        assert np.allclose(tmp_F.axis_y, self.F.axis_y[2:61])
         # should modify inplace if asked
         tmp_F = self.F.copy()
         tmp_F.crop(intervx=[3, 10], intervy=[2, 6], inplace=True)
@@ -339,6 +404,23 @@ class TestField(object):
         assert l == 71
         assert u == 31
         assert d == 90
+        # should raise error when wrong types are provided
+        with pytest.raises(ValueError):
+            self.F.crop(intervx="test")
+        with pytest.raises(ValueError):
+            self.F.crop(intervy="test")
+        with pytest.raises(ValueError):
+            self.F.crop(intervx=[1])
+        with pytest.raises(ValueError):
+            self.F.crop(intervy=[5])
+        with pytest.raises(ValueError):
+            self.F.crop(intervx=[110, 24])
+        with pytest.raises(ValueError):
+            self.F.crop(intervy=[50, 1])
+        with pytest.raises(ValueError):
+            self.F.crop(intervx=[10000, 20000])
+        with pytest.raises(ValueError):
+            self.F.crop(intervy=[10000, 20000])
 
     def test_extend(self):
         # should extend
