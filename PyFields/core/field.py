@@ -74,8 +74,9 @@ class Field(object):
                 self.__dx = None
         else:
             raise ValueError('New axis has to be of the same size of the old'
-                             f' one ({len(self.axis_x)}), but is of size'
-                             f' {len(new_axis_x)}.')
+                             ' one ({}), but is of size'
+                             .format(len(self.axis_x)) +
+                             ' {}.'.format(len(new_axis_x)))
 
     @axis_x.deleter
     def axis_x(self):
@@ -110,8 +111,10 @@ class Field(object):
                 self.__dy = None
         else:
             raise ValueError('New axis has to be of the same size of the old'
-                             f' one ({len(self.axis_y)}), but is of size'
-                             f' {len(new_axis_y)}.')
+                             ' one ({}), but is of size'
+                             ' {}.'
+                             .format(len(self.axis_y),
+                                     len(new_axis_y)))
 
     @axis_y.deleter
     def axis_y(self):
@@ -212,18 +215,18 @@ class Field(object):
         # checks
         if direction not in ['x', 'y']:
             raise ValueError("'direction' should be 'x' or 'y', "
-                             f"not '{direction}'")
+                             "not '{}'".format(direction))
         if direction == 'x':
             axis = self.axis_x
         elif direction == 'y':
             axis = self.axis_y
         if value < axis[0] or value > axis[-1]:
             raise ValueError("'value' is out of bound: "
-                             f"is {value} and should be between"
-                             f" {axis[0]} and {axis[-1]}.")
+                             "is {} and should be between".format(value) +
+                             " {} and {}.".format(axis[0], axis[-1]))
         if kind not in ['bounds', 'nearest', 'decimal']:
             raise ValueError("'kind' should be 'bounds', 'nearest', or "
-                             f"'decimal', but is {kind}")
+                             "'decimal', but is {}".format(kind))
         # getting the bounds indices
         ind = np.searchsorted(axis, value)
         if axis[ind] == value:
@@ -357,7 +360,7 @@ class Field(object):
                     reversex = True
             except TypeError:
                 raise TypeError("'scalex' should be a number or an Unum "
-                                f"object, but is currently {scalex}")
+                                "object, but is currently {}".format(scalex))
         if reversex:
             tmp_f.axis_x = tmp_f.axis_x[::-1]
         # y
@@ -379,7 +382,7 @@ class Field(object):
                     reversey = True
             except TypeError:
                 raise TypeError("'scaley' should be a number or an Unum "
-                                f"object, but is currently {scaley}")
+                                "object, but is currently {}".format(scaley))
         if reversey:
             tmp_f.axis_y = tmp_f.axis_y[::-1]
         # returning
@@ -408,10 +411,10 @@ class Field(object):
         # check params
         if angle % 90 != 0:
             raise ValueError("'angle' should be a multiple of 90,"
-                             f" and is currently {angle}")
+                             " and is currently {}".format(angle))
         if not isinstance(inplace, bool):
             raise TypeError("'inplace' should be True or False, and is"
-                            f" currently {inplace}")
+                            " currently {}".format(inplace))
         # copy or not
         if inplace:
             tmp_field = self
@@ -470,7 +473,7 @@ class Field(object):
                 raise TypeError("'new_unit' should be a valid unit.")
         if axis not in ['x', 'y']:
             raise TypeError("'axis' should be 'x' or 'y', and is "
-                            f"currently {axis}")
+                            "currently {}".format(axis))
         if axis == 'x':
             old_unit = self.unit_x
             new_unit = old_unit.asUnit(new_unit)
@@ -497,12 +500,14 @@ class Field(object):
             try:
                 self.axis_x -= x
             except TypeError:
-                raise TypeError(f"'x' must be a number, and is currently {x}")
+                raise TypeError("'x' must be a number, and is currently {}"
+                                .format(x))
         if y is not None:
             try:
                 self.axis_y -= y
             except TypeError:
-                raise TypeError(f"'y' must be a number, and is currently {y}")
+                raise TypeError("'y' must be a number, and is currently {}"
+                                .format(y))
 
     def crop(self, intervx=None, intervy=None, full_output=False,
              ind=False, inplace=False):
