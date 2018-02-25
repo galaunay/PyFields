@@ -250,10 +250,10 @@ class TestField(object):
         save_F = self.F.copy()
         tmp_F = self.F.copy()
         tmp_F.scale(scalex=10, scaley=1.43, inplace=True)
-        assert save_F.dx == 10*tmp_F.dx
-        assert np.all(save_F.axis_x == 10*tmp_F.axis_x)
-        assert save_F.dy == 1.43*tmp_F.dy
-        assert np.all(save_F.axis_y == 1.43*tmp_F.axis_y)
+        assert 10*save_F.dx == tmp_F.dx
+        assert np.all(10*save_F.axis_x == tmp_F.axis_x)
+        assert 1.43*save_F.dy == tmp_F.dy
+        assert np.all(1.43*save_F.axis_y == tmp_F.axis_y)
         # should raise an error when scale is inadequate
         with pytest.raises(TypeError):
             self.F.scale('test')
