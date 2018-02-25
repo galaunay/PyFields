@@ -36,8 +36,6 @@ class Field(object):
         self.__axis_y = np.array([], dtype=float)
         self.__is_axis_x_regular = None
         self.__is_axis_y_regular = None
-        self.__dx = None
-        self.__dy = None
         self.__unit_x = make_unit('')
         self.__unit_y = make_unit('')
         # fill
@@ -80,8 +78,8 @@ class Field(object):
 
     @property
     def dx(self):
-        if self.__dx is not None:
-            return self.__dx
+        if self.__is_axis_x_regular:
+            return self.axis_x[1] - self.axis_x[0]
         else:
             raise Exception('dx is not defined, axis x is not regular')
 
@@ -115,8 +113,8 @@ class Field(object):
 
     @property
     def dy(self):
-        if self.__dy is not None:
-            return self.__dy
+        if self.__is_axis_y_regular:
+            return self.axis_y[1] - self.axis_y[0]
         else:
             raise Exception('dy is not defined, axis y is not regular')
 

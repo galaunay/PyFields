@@ -32,6 +32,9 @@ try:
 except:
     pass
 
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import unum
@@ -39,6 +42,7 @@ import unum.units as units
 
 from helper import sane_parameters
 from PyFields import ScalarField, Field
+
 
 
 class TestScalarField(object):
@@ -173,7 +177,7 @@ class TestScalarField(object):
         # should raise an error if mask is not a boolean array
         with pytest.raises(ValueError):
             SF = ScalarField(self.x, self.y, self.values_int,
-                             'not everything', 'm', 'mm', 'm/s')
+                             [1, 2, 'not everything'], 'm', 'mm', 'm/s')
 
     def test_values_property(self):
         #should update mask
@@ -290,6 +294,19 @@ class TestScalarField(object):
         assert np.allclose(res_SF.values, 3)
         assert np.allclose(res_SF.mask, self.SF.mask)
         assert Field.__eq__(res_SF, self.SF)
+        # should divide with another array if coherent size
+        values = self.SF.values.copy()
+        values *= 3
+        res_SF = self.SF / values
+        assert np.allclose(res_SF.values, 1/3)
+        assert np.allclose(res_SF.mask, self.SF.mask)
+        assert Field.__eq__(res_SF, self.SF)
+        values = self.SF.values.copy()
+        values *= 3
+        res_SF = self.SF.__rtruediv__(values)
+        assert np.allclose(res_SF.values, 3)
+        assert np.allclose(res_SF.mask, self.SF.mask)
+        assert Field.__eq__(res_SF, self.SF)
         # # should add with cropped scalarfield if coherent axis system
         # tmp_SF = self.SF.copy().crop(intervx=[10, 50], ind=True)
         # tmp_SF.values *= 3
@@ -304,9 +321,18 @@ class TestScalarField(object):
         assert np.allclose(tmp_SF.values, self.SF.values/5)
         assert np.allclose(tmp_SF.mask, self.SF.mask)
         assert Field.__eq__(tmp_SF, self.SF)
+        tmp_SF = 5 / self.SF
+        assert np.allclose(tmp_SF.values, 5/self.SF.values)
+        assert np.allclose(tmp_SF.mask, self.SF.mask)
+        assert Field.__eq__(tmp_SF, self.SF)
         # should add with units if coherent
         tmp_SF = self.SF / (5.2*units.m/units.s)
         assert np.allclose(tmp_SF.values, self.SF.values/5.2)
+        assert tmp_SF.unit_values.strUnit() == '[]'
+        assert np.allclose(tmp_SF.mask, self.SF.mask)
+        assert Field.__eq__(tmp_SF, self.SF)
+        tmp_SF = self.SF.__rtruediv__(5.2*units.m/units.s)
+        assert np.allclose(tmp_SF.values, 5.2/self.SF.values)
         assert tmp_SF.unit_values.strUnit() == '[]'
         assert np.allclose(tmp_SF.mask, self.SF.mask)
         assert Field.__eq__(tmp_SF, self.SF)
@@ -331,6 +357,19 @@ class TestScalarField(object):
         tmp_SF.values *= 3
         res_SF = tmp_SF * self.SF
         assert np.allclose(res_SF.values, self.SF.values*3*self.SF.values)
+        assert np.allclose(res_SF.mask, self.SF.mask)
+        assert Field.__eq__(res_SF, self.SF)
+        # should divide with another array if coherent size
+        values = self.SF.values.copy()
+        values *= 3
+        res_SF = self.SF * values
+        assert np.allclose(res_SF.values, self.SF.values**2*3)
+        assert np.allclose(res_SF.mask, self.SF.mask)
+        assert Field.__eq__(res_SF, self.SF)
+        values = self.SF.values.copy()
+        values *= 3
+        res_SF = self.SF.__rmul__(values)
+        assert np.allclose(res_SF.values, self.SF.values**2*3)
         assert np.allclose(res_SF.mask, self.SF.mask)
         assert Field.__eq__(res_SF, self.SF)
         # # should add with cropped scalarfield if coherent axis system
@@ -393,6 +432,15 @@ class TestScalarField(object):
         # should iterate on axis
         for (i, j), (x, y), val in self.SF:
             assert self.SF.values[i, j] == val
+
+    def test_get_props(self):
+        text = self.SF.get_props()
+        assert text == """Shape: (98, 125)
+Axis x: [0.0..13.5][m]
+Axis y: [0.0..8.19892][mm]
+Values: [-7.997578154671322..4.872896257509408][m/s]
+Masked values: 0/12250
+"""
 
     def test_minmax_mean(self):
         # soul return min
@@ -486,6 +534,30 @@ class TestScalarField(object):
         assert tmp_SF.dy == 1.43*SF.dy
         assert np.all(tmp_SF.axis_y == 1.43*SF.axis_y)
         assert np.allclose(SF.values*5.4, tmp_SF.values)
+        # should scale with units
+        SF = self.SF
+        sx = -2.2*units.m
+        sy = -1.43*units.Hz
+        sv = -5.4*1/(units.m/units.s)
+        tmp_SF = SF.scale(scalex=sx)
+        assert np.isclose(tmp_SF.dx, 2.2*SF.dx)
+        assert np.allclose(tmp_SF.axis_x, -2.2*SF.axis_x[::-1])
+        assert tmp_SF.unit_x.strUnit() == '[m2]'
+        tmp_SF = SF.scale(scaley=sy)
+        assert np.isclose(tmp_SF.dy, 1.43*SF.dy)
+        assert np.all(tmp_SF.axis_y == -1.43*SF.axis_y[::-1])
+        assert tmp_SF.unit_y.strUnit() == '[Hz.mm]'
+        tmp_SF = SF.scale(scalex=sx, scaley=sy)
+        assert np.isclose(tmp_SF.dx, 2.2*SF.dx)
+        assert np.all(tmp_SF.axis_x == -2.2*SF.axis_x[::-1])
+        assert np.isclose(tmp_SF.dy, 1.43*SF.dy)
+        assert tmp_SF.unit_y.strUnit() == '[Hz.mm]'
+        assert tmp_SF.unit_x.strUnit() == '[m2]'
+        assert np.allclose(tmp_SF.axis_y, -1.43*SF.axis_y[::-1])
+        tmp_SF = self.SF.scale(scalev=sv)
+        assert np.allclose(SF.values*-5.4, tmp_SF.values)
+        assert tmp_SF.unit_values.strUnit() == '[]'
+        assert Field.__eq__(tmp_SF, SF)
 
     def test_rotate(self):
         # should rotate
@@ -550,7 +622,7 @@ class TestScalarField(object):
         with pytest.raises(TypeError):
             self.SF.change_unit(45, 'Hz')
         with pytest.raises(TypeError):
-            self.SF.change_unit('values',  45)
+            self.SF.change_unit('values', 45)
 
     def test_crop(self):
         # should crop
@@ -690,29 +762,33 @@ class TestScalarField(object):
         tmp_SF = self.SF.copy()
         mask = tmp_SF.mask
         mask[0:2, :] = True
+        mask[3, 3] = True
         tmp_SF.mask = mask
         crop_SF = tmp_SF.crop_masked_border(hard=True)
-        assert crop_SF.shape[0] == tmp_SF.shape[0] - 2
+        assert crop_SF.shape[0] == tmp_SF.shape[0] - 4
         tmp_SF.crop_masked_border(hard=True, inplace=True)
-        assert self.SF.shape[0] - 2 == tmp_SF.shape[0]
+        assert self.SF.shape[0] - 4 == tmp_SF.shape[0]
         #
         tmp_SF = self.SF.copy()
         mask = tmp_SF.mask
         mask[-5::, :] = True
+        mask[-6, 3] = True
         tmp_SF.mask = mask
         crop_SF = tmp_SF.crop_masked_border(hard=True)
-        assert crop_SF.shape[0] == tmp_SF.shape[0] - 5
-        tmp_SF.crop_masked_border(inplace=True)
-        assert self.SF.shape[0] - 5 == tmp_SF.shape[0]
+        assert crop_SF.shape[0] == tmp_SF.shape[0] - 6
+        tmp_SF.crop_masked_border(inplace=True, hard=True)
+        assert self.SF.shape[0] - 6 == tmp_SF.shape[0]
         tmp_SF = self.SF.copy()
         #
+        tmp_SF = self.SF.copy()
         mask = tmp_SF.mask
         mask[:, 0:2] = True
+        mask[3, 2] = True
         tmp_SF.mask = mask
         crop_SF = tmp_SF.crop_masked_border(hard=True)
-        assert crop_SF.shape[1] == tmp_SF.shape[1] - 2
-        tmp_SF.crop_masked_border(inplace=True)
-        assert self.SF.shape[1] - 2 == tmp_SF.shape[1]
+        assert crop_SF.shape[1] == tmp_SF.shape[1] - 3
+        tmp_SF.crop_masked_border(inplace=True, hard=True)
+        assert self.SF.shape[1] - 3 == tmp_SF.shape[1]
         #
         tmp_SF = self.SF.copy()
         mask = tmp_SF.mask
@@ -748,3 +824,88 @@ class TestScalarField(object):
                 assert not np.isnan(tmp_SF.values[4, 5])
                 if kind == 'value':
                     assert tmp_SF.values[4, 5] == 5.4
+
+    def test_smooth(self):
+        # should smooth
+        tmp_SF = self.SF.smooth()
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.5794236449287167
+        # should smooth
+        tmp_SF = self.SF.smooth('gaussian')
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.5721711469265691
+        # should smooth
+        tmp_SF = self.SF.copy()
+        tmp_SF.smooth(inplace=True)
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.5794236449287167
+        # should smooth
+        tmp_SF = self.SF.copy()
+        tmp_SF.smooth('gaussian', inplace=True)
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.5721711469265691
+        # should smooth
+        tmp_SF = self.SF.smooth(size=5)
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.5502931977507135
+        # should smooth
+        tmp_SF = self.SF.smooth('gaussian', size=5)
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.0270509831619823
+        # should smooth
+        tmp_SF = self.SF.copy()
+        tmp_SF.smooth(inplace=True, size=5)
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.5502931977507135
+        # should smooth
+        tmp_SF = self.SF.copy()
+        tmp_SF.smooth('gaussian', inplace=True, size=5)
+        assert self.SF.values[5, 5] == 1.594074929763259
+        assert tmp_SF.values[5, 5] == 1.0270509831619823
+
+    def test_make_evenly_spaced(self):
+        tmp_SF = self.SF.make_evenly_spaced()
+        assert tmp_SF.values[5, 5] == 1.5733117031856432
+        tmp_SF = self.SF.copy()
+        tmp_SF.make_evenly_spaced(inplace=True)
+        assert tmp_SF.values[5, 5] == 1.5733117031856432
+
+    def test_reduce_resolution(self):
+        tmp_SF = self.SF.reduce_resolution(2)
+        assert len(tmp_SF.axis_x) == int(len(self.SF.axis_x)/2)
+        assert len(tmp_SF.axis_y) == int(len(self.SF.axis_y)/2)
+        tmp_SF = self.SF.copy()
+        tmp_SF.reduce_resolution(2, inplace=True)
+        assert len(tmp_SF.axis_x) == int(len(self.SF.axis_x)/2)
+        assert len(tmp_SF.axis_y) == int(len(self.SF.axis_y)/2)
+        tmp_SF = self.SF.reduce_resolution(5)
+        assert len(tmp_SF.axis_x) == int(len(self.SF.axis_x)/5)
+        assert len(tmp_SF.axis_y) == int(len(self.SF.axis_y)/5)
+        tmp_SF = self.SF.copy()
+        tmp_SF.reduce_resolution(5, inplace=True)
+        assert len(tmp_SF.axis_x) == int(len(self.SF.axis_x)/5)
+        assert len(tmp_SF.axis_y) == int(len(self.SF.axis_y)/5)
+
+    @pytest.mark.mpl_image_compare
+    def test_SF_display_imshow(self):
+        fig = plt.figure()
+        self.SF.display(kind='imshow')
+        return fig
+
+    @pytest.mark.mpl_image_compare
+    def test_SF_display_contour(self):
+        fig = plt.figure()
+        self.SF.display(kind='contour')
+        return fig
+
+    @pytest.mark.mpl_image_compare
+    def test_SF_display_contourf(self):
+        fig = plt.figure()
+        self.SF.display(kind='contourf')
+        return fig
+
+    @pytest.mark.mpl_image_compare
+    def test_SF_display_mask(self):
+        fig = plt.figure()
+        self.SF.display('mask')
+        return fig

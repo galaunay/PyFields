@@ -1,4 +1,4 @@
 echo "=== Running tests ==="
 cd ..
-python setup.py pytest
-pytest --cov=PyFields --cov-report=html
+pytest --mpl --cov=PyFields --cov-report=html
+$BROWSER htmlcov/index.html &

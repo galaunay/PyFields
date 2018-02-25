@@ -90,7 +90,7 @@ class ScalarField(fld.Field):
                 raise TypeError("'mask' should be a boolean or an array of"
                                 "boolean, but is currently {}"
                                 .format(mask))
-            if np.any(mask.shape != self.shape):
+            if mask.shape != () and np.any(mask.shape != self.shape):
                 raise ValueError("'mask' should be of the same size as the"
                                  " axis system: {},"
                                  " but is currently of size {}"
@@ -319,7 +319,9 @@ class ScalarField(fld.Field):
             tmpsf = self.copy()
             mask = np.logical_or(self.mask, obj == 0)
             not_mask = np.logical_not(mask)
-            tmpsf.values[not_mask] /= obj[not_mask]
+            values = tmpsf.values
+            values[not_mask] /= obj[not_mask]
+            tmpsf.values = values
             tmpsf.mask = mask
             return tmpsf
         except TypeError:
@@ -338,44 +340,43 @@ class ScalarField(fld.Field):
     __div__ = __truediv__
 
     def __rtruediv__(self, obj):
+        tmpsf = self.copy()
         # units object
         if isinstance(obj, unum.Unum):
-            tmpsf = self.copy()
             tmpsf.values = obj.asNumber()/tmpsf.values
             tmpsf.unit_values = obj/obj.asNumber()/tmpsf.unit_values
             return tmpsf
-        # scalarfield
-        if isinstance(obj, ScalarField):
-            if np.any(self.axis_x != obj.axis_x)\
-               or np.any(self.axis_y != obj.axis_y)\
-               or self.unit_x != obj.unit_x\
-               or self.unit_y != obj.unit_y:
-                raise ValueError("Fields are not consistent")
-            tmpsf = self.copy()
-            values = obj.values / self.values
-            mask = np.logical_or(self.mask, obj.mask)
-            unit = obj.unit_values / self.unit_values
-            tmpsf.values = values*unit.asNumber()
-            tmpsf.mask = mask
-            tmpsf.unit_values = unit/unit.asNumber()
-            return tmpsf
+        # # scalarfield
+        # if isinstance(obj, ScalarField):
+        #     if np.any(self.axis_x != obj.axis_x)\
+        #        or np.any(self.axis_y != obj.axis_y)\
+        #        or self.unit_x != obj.unit_x\
+        #        or self.unit_y != obj.unit_y:
+        #         raise ValueError("Fields are not consistent")
+        #     values = obj.values / self.values
+        #     mask = np.logical_or(self.mask, obj.mask)
+        #     unit = obj.unit_values / self.unit_values
+        #     tmpsf.values = values*unit.asNumber()
+        #     tmpsf.mask = mask
+        #     tmpsf.unit_values = unit/unit.asNumber()
+        #     return tmpsf
         # array
         try:
             obj[0]
             obj = np.array(obj, subok=True)
             if not obj.shape == self.shape:
                 raise ValueError()
-            tmpsf = self.copy()
             mask = np.logical_or(self.mask, obj == 0)
             not_mask = np.logical_not(mask)
-            tmpsf.values[not_mask] = obj[not_mask] / tmpsf.values[not_mask]
+            values = tmpsf.values
+            values[not_mask] = obj[not_mask] / tmpsf.values[not_mask]
+            tmpsf.values = values
             tmpsf.mask = mask
             return tmpsf
         except TypeError:
             pass
         # number
         try:
-            tmpsf = self.copy()
             tmpsf.values = obj/tmpsf.values
             tmpsf.unit_values = 1/tmpsf.unit_values
             return tmpsf
@@ -415,7 +416,9 @@ class ScalarField(fld.Field):
             tmpsf = self.copy()
             mask = self.mask
             not_mask = np.logical_not(mask)
-            tmpsf.values[not_mask] *= obj[not_mask]
+            values = tmpsf.values
+            values[not_mask] *= obj[not_mask]
+            tmpsf.values = values
             tmpsf.mask = mask
             return tmpsf
         except TypeError:
@@ -472,18 +475,18 @@ class ScalarField(fld.Field):
         """
         Print the ScalarField main properties.
         """
-        text = "Shape: {}".format(self.shape)
+        text = "Shape: {}\n".format(self.shape)
         unit_x = self.unit_x.strUnit()
-        text += "Axis x: [{}..{}]{}".format(self.axis_x[0], self.axis_x[-1],
+        text += "Axis x: [{}..{}]{}\n".format(self.axis_x[0], self.axis_x[-1],
                                             unit_x)
         unit_y = self.unit_y.strUnit()
-        text += "Axis y: [{}..{}]{}".format(self.axis_y[0], self.axis_y[-1],
+        text += "Axis y: [{}..{}]{}\n".format(self.axis_y[0], self.axis_y[-1],
                                             unit_y)
         unit_values = self.unit_values.strUnit()
-        text += "Values: [{}..{}]{}".format(self.min, self.max, unit_values)
+        text += "Values: [{}..{}]{}\n".format(self.min, self.max, unit_values)
         nmb_mask = np.sum(self.mask)
         nmb_tot = self.shape[0]*self.shape[1]
-        text += "Masked values: {}/{}".format(nmb_mask, nmb_tot)
+        text += "Masked values: {}/{}\n".format(nmb_mask, nmb_tot)
         return text
 
     def get_value(self, x, y, ind=False, unit=False):
@@ -1236,7 +1239,7 @@ class ScalarField(fld.Field):
     def fill(self, kind='linear', value=0., inplace=False, reduce_tri=True,
              crop=False):
         """
-        Fill the masked part of the array.
+        Fill the masked parts of the scalar field.
 
         Parameters
         ----------
@@ -1325,7 +1328,8 @@ class ScalarField(fld.Field):
 
     def smooth(self, tos='uniform', size=None, inplace=False, **kw):
         """
-        Smooth the scalarfield in place.
+        Smooth the scalarfield.
+
         Warning : fill up the field (should be used carefully with masked field
         borders)
 
@@ -1345,26 +1349,24 @@ class ScalarField(fld.Field):
             Additional parameters for ndimage methods
             (See ndimage documentation)
         """
-        if not isinstance(tos, STRINGTYPES):
-            raise TypeError("'tos' must be a string")
+        if inplace:
+            tmp_sf = self
+        else:
+            tmp_sf = self.copy()
+        if tos not in ['uniform', 'gaussian']:
+            raise TypeError("'tos' must be 'uniform' or 'gaussian'")
         if size is None and tos == 'uniform':
             size = 3
         elif size is None and tos == 'gaussian':
             size = 1
         # filling up the field before smoothing
-        if inplace:
-            self.fill(inplace=True)
-            values = self.values
-        else:
-            tmp_sf = self.fill(inplace=False)
-            values = tmp_sf.values
+        self.fill(inplace=True)
+        values = tmp_sf.values
         # smoothing
         if tos == "uniform":
             values = ndimage.uniform_filter(values, size, **kw)
         elif tos == "gaussian":
             values = ndimage.gaussian_filter(values, size, **kw)
-        else:
-            raise ValueError("'tos' must be 'uniform' or 'gaussian'")
         # storing
         if inplace:
             self.values = values
@@ -1372,9 +1374,9 @@ class ScalarField(fld.Field):
             tmp_sf.values = values
             return tmp_sf
 
-    def make_evenly_spaced(self, interp="linear", res=1):
+    def make_evenly_spaced(self, interp="linear", res=1, inplace=False):
         """
-        Use interpolation to make the field evenly spaced
+        Use interpolation to make the field evenly spaced.
 
         Parameters
         ----------
@@ -1384,30 +1386,38 @@ class ScalarField(fld.Field):
             Resolution of the resulting field.
             A value of 1 meaning a spatial resolution equal to the smallest
             space along the two axis for the initial field.
+            A value of 2 means half this resolution.
+        inplace: boolean
+            If True, modify the scalar field in place, else, return a
+            modified version of it.
         """
-        # get data
-        axisx = self.axis_x
-        axisy = self.axis_y
+        if inplace:
+            tmp_sf = self
+        else:
+            tmp_sf = self.copy()
+            # get data
+        axisx = tmp_sf.axis_x
+        axisy = tmp_sf.axis_y
         dx = np.min(axisx[1:] - axisx[:-1])/res
         dy = np.min(axisy[1:] - axisy[:-1])/res
         Dx = axisx[-1] - axisx[0]
         Dy = axisy[-1] - axisy[0]
         #
-        interp = self.get_interpolator(interp=interp)
-        # new_x = np.arange(axisx[0], axisx[-1] + .1*dx, dx)
+        interp = tmp_sf.get_interpolator(interp=interp)
         new_x = np.linspace(axisx[0], axisx[-1], int(Dx/dx))
-        # new_y = np.arange(axisy[0], axisy[-1] + .1*dy, dy)
         new_y = np.linspace(axisy[0], axisy[-1], int(Dy/dy))
         new_values = interp(new_x, new_y)
         # store
-        self.import_from_arrays(new_x, new_y, new_values.transpose(),
-                                mask=False, unit_x=self.unit_x,
-                                unit_y=self.unit_y,
-                                unit_values=self.unit_values)
+        tmp_sf.__init__(new_x, new_y, new_values.transpose(),
+                        mask=False, unit_x=tmp_sf.unit_x,
+                        unit_y=tmp_sf.unit_y,
+                        unit_values=tmp_sf.unit_values)
+        if not inplace:
+            return tmp_sf
 
-    def reduce_spatial_resolution(self, fact, inplace=False):
+    def reduce_resolution(self, fact, inplace=False):
         """
-        Reduce the spatial resolution of the field by a factor 'fact'
+        Reduce the spatial resolution of the scalar field by a factor 'fact'.
 
         Parameters
         ----------
@@ -1416,41 +1426,45 @@ class ScalarField(fld.Field):
         inplace : boolean, optional
             .
         """
-        if not isinstance(fact, int):
-            raise TypeError()
+        if inplace:
+            tmp_sf = self
+        else:
+            tmp_sf = self.copy()
+        #
+        fact = int(fact)
         if fact < 1:
             raise ValueError()
         if fact == 1:
             if inplace:
                 pass
             else:
-                return self.copy()
+                return tmp_sf
         if fact % 2 == 0:
             pair = True
         else:
             pair = False
         # get new axis
-        axis_x = self.axis_x
-        axis_y = self.axis_y
+        axis_x = tmp_sf.axis_x
+        axis_y = tmp_sf.axis_y
         if pair:
             new_axis_x = (axis_x[np.arange(fact/2 - 1, len(axis_x) - fact/2,
-                                         fact, dtype=int)] +
-                         axis_x[np.arange(fact/2, len(axis_x) - fact/2 + 1,
-                                         fact, dtype=int)])/2.
+                                           fact, dtype=int)] +
+                          axis_x[np.arange(fact/2, len(axis_x) - fact/2 + 1,
+                                           fact, dtype=int)])/2.
             new_axis_y = (axis_y[np.arange(fact/2 - 1, len(axis_y) - fact/2,
-                                         fact, dtype=int)] +
-                         axis_y[np.arange(fact/2, len(axis_y) - fact/2 + 1,
-                                         fact, dtype=int)])/2.
+                                           fact, dtype=int)] +
+                          axis_y[np.arange(fact/2, len(axis_y) - fact/2 + 1,
+                                           fact, dtype=int)])/2.
         else:
             new_axis_x = axis_x[np.arange((fact - 1)/2,
-                                        len(axis_x) - (fact - 1)/2,
-                                        fact, dtype=int)]
+                                          len(axis_x) - (fact - 1)/2,
+                                          fact, dtype=int)]
             new_axis_y = axis_y[np.arange((fact - 1)/2,
-                                        len(axis_y) - (fact - 1)/2,
-                                        fact, dtype=int)]
+                                          len(axis_y) - (fact - 1)/2,
+                                          fact, dtype=int)]
         # get new values
-        values = self.values
-        mask = self.mask
+        values = tmp_sf.values
+        mask = tmp_sf.mask
         if pair:
             inds_x = np.arange(fact/2, len(axis_x) - fact/2 + 1,
                                fact, dtype=int)
@@ -1477,11 +1491,12 @@ class ScalarField(fld.Field):
             new_values = np.zeros((len(inds_x), len(inds_y)))
             new_mask = np.zeros((len(inds_x), len(inds_y)))
             for i in np.arange(len(inds_x)):
-                intervx = slice(inds_x[i] - (fact - 1)/2,
-                                inds_x[i] + (fact - 1)/2 + 1)
+                intervx = slice(int(inds_x[i] - (fact - 1)/2),
+                                int(inds_x[i] + (fact - 1)/2 + 1))
                 for j in np.arange(len(inds_y)):
-                    intervy = slice(inds_y[j] - (fact - 1)/2,
-                                    inds_y[j] + (fact - 1)/2 + 1)
+                    intervy = slice(int(inds_y[j] - (fact - 1)/2),
+                                    int(inds_y[j] + (fact - 1)/2 + 1))
+                    print(intervx, intervy)
                     if np.all(mask[intervx, intervy]):
                         new_mask[i, j] = True
                         new_values[i, j] = 0.
@@ -1489,54 +1504,16 @@ class ScalarField(fld.Field):
                         new_values[i, j] = np.mean(values[intervx, intervy]
                                                    [~mask[intervx, intervy]])
         # returning
-        if inplace:
-            self.__init__()
-            self.import_from_arrays(new_axis_x, new_axis_y, new_values,
-                                    mask=new_mask,
-                                    unit_x=self.unit_x, unit_y=self.unit_y,
-                                    unit_values=self.unit_values)
-        else:
-            sf = ScalarField()
-            sf.import_from_arrays(new_axis_x, new_axis_y, new_values,
-                                  mask=new_mask,
-                                  unit_x=self.unit_x, unit_y=self.unit_y,
-                                  unit_values=self.unit_values)
-            return sf
+        tmp_sf.__init__(new_axis_x, new_axis_y, new_values,
+                        mask=new_mask,
+                        unit_x=tmp_sf.unit_x,
+                        unit_y=tmp_sf.unit_y,
+                        unit_values=tmp_sf.unit_values)
+        if not inplace:
+            return tmp_sf
 
-    def __clean(self):
-        self.__init__()
-
-    def _display(self, component=None, kind=None, **plotargs):
-        # getting datas
-        axis_x, axis_y = self.axis_x, self.axis_y
-        unit_x, unit_y = self.unit_x, self.unit_y
-        X, Y = np.meshgrid(self.axis_y, self.axis_x)
-        # getting wanted component
-        if component is None or component == 'values':
-            values = self.values.astype(dtype=float)
-            mask = self.mask
-            values[mask] = np.NaN
-        elif component == 'mask':
-            values = self.mask
-        else:
-            raise ValueError("unknown value of 'component' parameter : {}"
-                             .format(component))
-        dp = pplt.Displayer(x=axis_x, y=axis_y, values=values, kind=kind,
-                            **plotargs)
-        plot = dp.draw()
-        pplt.DataCursorTextDisplayer(dp)
-        # setting labels
-        if unit_x.strUnit() == "[]":
-            plt.xlabel("x")
-        else:
-            plt.xlabel("x " + unit_x.strUnit())
-        if unit_y.strUnit() == "[]":
-            plt.ylabel("y")
-        else:
-            plt.ylabel("y " + unit_y.strUnit())
-        return plot
-
-    def display(self, component=None, kind=None, **plotargs):
+    def display(self, component='values', kind='imshow',
+                annotate=True, **plotargs):
         """
         Display the scalar field.
 
@@ -1548,41 +1525,83 @@ class ScalarField(fld.Field):
             If 'imshow': (default) each datas are plotted (imshow),
             if 'contour': contours are ploted (contour),
             if 'contourf': filled contours are ploted (contourf).
+        annotate: boolean
+            If True (default) add label and legedn to the graph.
         **plotargs : dict
-            Arguments passed to the 'contourf' function used to display the
-            scalar field.
+            Arguments passed to the plotting function.
 
         Returns
         -------
         fig : figure reference
             Reference to the displayed figure.
         """
-        displ = self._display(component, kind, **plotargs)
-        plt.title("")
-        cb = plt.colorbar(displ)
-        if self.unit_values.strUnit() == "[]":
-            cb.set_label("Values")
-        else:
-            cb.set_label("Values {}".format(self.unit_values.strUnit()))
-        # search for limits in case of masked field
-        if component != 'mask':
-            mask = self.mask
-            for i in np.arange(len(self.axis_x)):
-                if not np.all(mask[i, :]):
-                    break
-            xmin = self.axis_x[i]
-            for i in np.arange(len(self.axis_x) - 1, -1, -1):
-                if not np.all(mask[i, :]):
-                    break
-            xmax = self.axis_x[i]
-            for i in np.arange(len(self.axis_y)):
-                if not np.all(mask[:, i]):
-                    break
-            ymin = self.axis_y[i]
-            for i in np.arange(len(self.axis_y) - 1, -1, -1):
-                if not np.all(mask[:, i]):
-                    break
-            ymax = self.axis_y[i]
-            plt.xlim([xmin, xmax])
-            plt.ylim([ymin, ymax])
-        return displ
+        # check
+        if component not in ['values', 'mask']:
+            raise ValueError("'component' must be 'values' or 'mask'")
+        if kind not in ['imshow', 'contour', 'contourf']:
+            raise ValueError("'kind' must be 'imshow', 'contour', "
+                             "or 'contourf'")
+        # getting datas
+        axis_x, axis_y = self.axis_x, self.axis_y
+        dx, dy = self.dx, self.dy
+        unit_x, unit_y = self.unit_x, self.unit_y
+        X, Y = np.meshgrid(self.axis_y, self.axis_x)
+        # getting wanted component
+        if component is None or component == 'values':
+            values = self.values.astype(dtype=float)
+        elif component == 'mask':
+            values = self.mask
+        # display data
+        if kind == 'imshow':
+            plot = plt.imshow(values.transpose(),
+                              extent=(axis_x[0] - dx/2., axis_x[-1] + dx/2.,
+                                      axis_y[0] - dy/2., axis_y[-1] + dy/2.),
+                              origin='lower', **plotargs)
+        elif kind == 'contour':
+            plot = plt.contour(axis_x, axis_y, values.transpose(), **plotargs)
+        elif kind == 'contourf':
+            plot = plt.contourf(axis_x, axis_y, values.transpose(), **plotargs)
+        # annotate
+        if annotate:
+            # labels
+            if unit_x.strUnit() == "[]":
+                plt.xlabel("x")
+            else:
+                plt.xlabel("x " + unit_x.strUnit())
+            if unit_y.strUnit() == "[]":
+                plt.ylabel("y")
+            else:
+                plt.ylabel("y " + unit_y.strUnit())
+            # title
+            plt.title("")
+            # colorbar
+            try:
+                cb = plt.colorbar(plot)
+                if self.unit_values.strUnit() == "[]":
+                    cb.set_label("Values")
+                else:
+                    cb.set_label(self.unit_values.strUnit())
+            except TypeError:
+                pass
+            # search for limits in case of masked field
+            if component != 'mask':
+                mask = self.mask
+                for i in np.arange(len(self.axis_x)):
+                    if not np.all(mask[i, :]):
+                        break
+                xmin = self.axis_x[i]
+                for i in np.arange(len(self.axis_x) - 1, -1, -1):
+                    if not np.all(mask[i, :]):
+                        break
+                xmax = self.axis_x[i]
+                for i in np.arange(len(self.axis_y)):
+                    if not np.all(mask[:, i]):
+                        break
+                ymin = self.axis_y[i]
+                for i in np.arange(len(self.axis_y) - 1, -1, -1):
+                    if not np.all(mask[:, i]):
+                        break
+                ymax = self.axis_y[i]
+                plt.xlim([xmin, xmax])
+                plt.ylim([ymin, ymax])
+        return plt.gca()
