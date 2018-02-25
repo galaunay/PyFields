@@ -59,7 +59,7 @@ def make_unit(string):
     for f in forbidden:
         if f in string:
             raise Exception("Unauthorized string: {}".format(f))
-    if re.match("[a-zA-Z]+\(.*\)", string):
+    if re.match("[a-zA-Z_0-9]+\(.*\)", string):
         raise Exception("No call allowed here")
     # exec
     env = {}
