@@ -45,5 +45,5 @@ setup(
     install_requires=['numpy', 'matplotlib', 'scipy', 'unum'],
     extras_require={},
     setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
+    tests_require=['pytest', 'pytest-cov'],
 )
