@@ -1,4 +1,4 @@
-PyFields.core.field module
+Field class
 ==========================
 
 .. automodule:: PyFields.core.field

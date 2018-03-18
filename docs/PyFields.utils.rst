@@ -1,13 +1,10 @@
-PyFields.utils package
+Utils package
 ======================
 
 .. automodule:: PyFields.utils
     :members:
     :undoc-members:
     :show-inheritance:
-
-Submodules
-----------
 
 .. toctree::
 

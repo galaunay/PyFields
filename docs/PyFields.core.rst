@@ -1,13 +1,10 @@
-PyFields.core package
+Core package
 =====================
 
 .. automodule:: PyFields.core
     :members:
     :undoc-members:
     :show-inheritance:
-
-Submodules
-----------
 
 .. toctree::
 

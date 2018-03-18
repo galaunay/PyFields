@@ -1,4 +1,4 @@
-PyFields.core.scalarfield module
+ScalarField class
 ================================
 
 .. automodule:: PyFields.core.scalarfield

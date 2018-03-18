@@ -1,4 +1,4 @@
-PyFields.core.vectorfield module
+VectorField class
 ================================
 
 .. automodule:: PyFields.core.vectorfield
