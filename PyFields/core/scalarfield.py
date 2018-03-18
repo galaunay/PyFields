@@ -98,94 +98,6 @@ class ScalarField(fld.Field):
             mask = np.logical_or(mask, np.isnan(values))
         self.mask = mask
 
-    @property
-    def values(self):
-        values = self.__values.copy()
-        if self.__mask is not None:
-            try:
-                values[self.mask] = np.nan
-            except ValueError:
-                values[self.mask] = 0
-        return values
-
-    @values.setter
-    def values(self, new_values):
-        new_values = np.asarray(new_values)
-        if self.shape[0] == new_values.shape[0]\
-           and self.shape[1] == new_values.shape[1]:
-            self.__values = new_values
-        else:
-            raise ValueError("'values' should have the same shape as the "
-                             "axis system: {}, not {}."
-                             .format(self.shape, new_values.shape))
-
-    @values.deleter
-    def values(self):
-        raise Exception("Can't delete that")
-
-    @property
-    def dtype(self):
-        return self.values.dtype
-
-    @property
-    def mask(self):
-        return np.logical_or(self.__mask,
-                             np.isnan(self.__values))
-
-    @mask.setter
-    def mask(self, new_mask):
-        # check 'new_mask' coherence
-        if isinstance(new_mask, (bool, np.bool)):
-            fill_value = new_mask
-            new_mask = np.empty(self.shape, dtype=bool)
-            new_mask.fill(fill_value)
-        else:
-            try:
-                new_mask = np.asarray(new_mask, dtype=bool)
-            except TypeError:
-                raise TypeError("'mask' should be a boolean or an array"
-                                "of booleans, but is currently {}"
-                                .format(new_mask))
-        if self.shape[0] != new_mask.shape[0]\
-           or self.shape[1] != new_mask.shape[1]:
-            raise ValueError("'mask' should be of the same size as the "
-                             "axis system: {}, but is currently: {}"
-                             .format(self.shape, new_mask.shape))
-        self.__mask = new_mask
-
-    @mask.deleter
-    def mask(self):
-        raise Exception("Can't delete that")
-
-    @property
-    def mask_as_sf(self):
-        tmp_sf = ScalarField(self.axis_x, self.axis_y, self.mask,
-                             mask=None, unit_x=self.unit_x,
-                             unit_y=self.unit_y,
-                             unit_values='')
-        return tmp_sf
-
-    @property
-    def unit_values(self):
-        return self.__unit_values
-
-    @unit_values.setter
-    def unit_values(self, new_unit_values):
-        if isinstance(new_unit_values, unum.Unum):
-            if np.isclose(new_unit_values.asNumber(), 1):
-                self.__unit_values = new_unit_values
-            else:
-                raise ValueError('New values unit is not 1')
-        else:
-            try:
-                self.__unit_values = make_unit(new_unit_values)
-            except TypeError:
-                raise TypeError('Unrecognized unity representation.')
-
-    @unit_values.deleter
-    def unit_values(self):
-        raise Exception("Can't delete that.")
-
     def __eq__(self, another):
         if not isinstance(another, ScalarField):
             return False
@@ -460,6 +372,95 @@ class ScalarField(fld.Field):
         return self.get_props()
 
     @property
+    def values(self):
+        values = self.__values.copy()
+        if self.__mask is not None:
+            try:
+                values[self.mask] = np.nan
+            except ValueError:
+                values[self.mask] = 0
+        return values
+
+    @values.setter
+    def values(self, new_values):
+        new_values = np.asarray(new_values)
+        if self.shape[0] == new_values.shape[0]\
+           and self.shape[1] == new_values.shape[1]:
+            self.__values = new_values
+        else:
+            raise ValueError("'values' should have the same shape as the "
+                             "axis system: {}, not {}."
+                             .format(self.shape, new_values.shape))
+
+    @values.deleter
+    def values(self):
+        raise Exception("Can't delete that")
+
+    @property
+    def dtype(self):
+        return self.values.dtype
+
+    @property
+    def mask(self):
+        return np.logical_or(self.__mask,
+                             np.isnan(self.__values))
+
+    @mask.setter
+    def mask(self, new_mask):
+        # check 'new_mask' coherence
+        if isinstance(new_mask, (bool, np.bool)):
+            fill_value = new_mask
+            new_mask = np.empty(self.shape, dtype=bool)
+            new_mask.fill(fill_value)
+        else:
+            try:
+                new_mask = np.asarray(new_mask, dtype=bool)
+            except TypeError:
+                raise TypeError("'mask' should be a boolean or an array"
+                                "of booleans, but is currently {}"
+                                .format(new_mask))
+        if self.shape[0] != new_mask.shape[0]\
+           or self.shape[1] != new_mask.shape[1]:
+            raise ValueError("'mask' should be of the same size as the "
+                             "axis system: {}, but is currently: {}"
+                             .format(self.shape, new_mask.shape))
+        self.__mask = new_mask
+
+    @mask.deleter
+    def mask(self):
+        raise Exception("Can't delete that")
+
+    @property
+    def mask_as_sf(self):
+        tmp_sf = ScalarField(self.axis_x, self.axis_y, self.mask,
+                             mask=None, unit_x=self.unit_x,
+                             unit_y=self.unit_y,
+                             unit_values='')
+        return tmp_sf
+
+    @property
+    def unit_values(self):
+        return self.__unit_values
+
+    @unit_values.setter
+    def unit_values(self, new_unit_values):
+        if isinstance(new_unit_values, unum.Unum):
+            if np.isclose(new_unit_values.asNumber(), 1):
+                self.__unit_values = new_unit_values
+            else:
+                raise ValueError('New values unit is not 1')
+        else:
+            try:
+                self.__unit_values = make_unit(new_unit_values)
+            except TypeError:
+                raise TypeError('Unrecognized unity representation.')
+
+    @unit_values.deleter
+    def unit_values(self):
+        raise Exception("Can't delete that.")
+
+
+    @property
     def min(self):
         return np.min(self.values[np.logical_not(self.mask)])
 
@@ -471,6 +472,10 @@ class ScalarField(fld.Field):
     def mean(self):
         return np.mean(self.values[np.logical_not(self.mask)])
 
+    @property
+    def std(self):
+        return np.std(self.values[np.logical_not(self.mask)])
+
     def get_props(self):
         """
         Print the ScalarField main properties.
@@ -478,15 +483,15 @@ class ScalarField(fld.Field):
         text = "Shape: {}\n".format(self.shape)
         unit_x = self.unit_x.strUnit()
         text += "Axis x: [{}..{}]{}\n".format(self.axis_x[0], self.axis_x[-1],
-                                            unit_x)
+                                              unit_x)
         unit_y = self.unit_y.strUnit()
         text += "Axis y: [{}..{}]{}\n".format(self.axis_y[0], self.axis_y[-1],
-                                            unit_y)
+                                              unit_y)
         unit_values = self.unit_values.strUnit()
         text += "Values: [{}..{}]{}\n".format(self.min, self.max, unit_values)
         nmb_mask = np.sum(self.mask)
         nmb_tot = self.shape[0]*self.shape[1]
-        text += "Masked values: {}/{}\n".format(nmb_mask, nmb_tot)
+        text += "Masked values: {}/{}".format(nmb_mask, nmb_tot)
         return text
 
     def get_value(self, x, y, ind=False, unit=False):
@@ -1042,7 +1047,7 @@ class ScalarField(fld.Field):
         """
         if not isinstance(new_unit, unum.Unum):
             new_unit = make_unit(new_unit)
-        if not axis in ['x', 'y', 'values']:
+        if axis not in ['x', 'y', 'values']:
             raise TypeError("'axis' should be 'x', 'y', or 'values'")
         if axis == 'x':
             fld.Field.change_unit(self, axis, new_unit)

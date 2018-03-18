@@ -31,9 +31,6 @@ try:
     sys.path.append(os.getcwd())
 except:
     pass
-
-import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -439,8 +436,7 @@ class TestScalarField(object):
 Axis x: [0.0..13.5][m]
 Axis y: [0.0..8.19892][mm]
 Values: [-7.997578154671322..4.872896257509408][m/s]
-Masked values: 0/12250
-"""
+Masked values: 0/12250"""
 
     def test_minmax_mean(self):
         # soul return min
