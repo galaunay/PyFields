@@ -4,3 +4,4 @@ __pycache__
 .eggs
 PyFields.egg-info
 htmlcov
+docs/_build
