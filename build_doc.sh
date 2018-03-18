@@ -29,6 +29,8 @@ sed -i 's/PyFields\.core\.temporalvectorfields module/TemporalVectorFields class
 sed -i 's/PyFields\.core\.spatialfields module/SpatialFields class/g' PyFields.*.rst
 sed -i 's/PyFields\.core\.spatialscalarfields module/SpatialScalarFields class/g' PyFields.*.rst
 sed -i 's/PyFields\.core\.spatialvectorfields module/SpatialVectorFields class/g' PyFields.*.rst
+# Utilities
+sed -i 's/PyFields\.utils\.units module/Units module/g' PyFields.*.rst
 # Modules
 sed -i 's/PyFields\.\([^.]*\)\.\1 module/\u\1 module/g' PyFields.*.rst
 sed -i 's/PyFields\.\([^.]*\)\.\([^.]*\) module/\u\1.\2 module/g' PyFields.*.rst

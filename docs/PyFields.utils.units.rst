@@ -1,4 +1,4 @@
-Utils.units module
+Units module
 ===========================
 
 .. automodule:: PyFields.utils.units
