@@ -8,7 +8,7 @@
     :target: https://coveralls.io/github/galaunay/PyFields?branch=master
     :alt: Overall test coverage
 
-.. image:: https://readthedocs.org/projects/PyFields/badge/?version=latest
+.. image:: https://readthedocs.org/projects/pyfields/badge/?version=latest
     :target: http://PyFields.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
