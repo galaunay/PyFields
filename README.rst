@@ -9,7 +9,7 @@
     :alt: Overall test coverage
 
 .. image:: https://readthedocs.org/projects/pyfields/badge/?version=latest
-    :target: http://PyFields.readthedocs.io/en/latest/?badge=latest
+    :target: https://PyFields.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
 ==============================================
@@ -20,14 +20,19 @@ PyFields is a Python3 package, intending to ease the manipulation and analysis o
 like velocity, concentration, temperature, ... .
 
 It can handle sets of fields, to analyze time evolution of the aforementioned fields.
-It includes easy-to-use helpers for importing field, analysing them, display them and export them in other format.
+It includes easy-to-use helpers for importing, analyzing, displaying and exporting fields.
+
 
 Documentation
 =============
 
-Full documentation is available on ReadTheDocs_.
+PyFields is fully documented inline.
+Your preferred IDE should be able to give you access to the documentation.
 
-.. _ReadTheDocs:
+Full documentation is also available on ReadTheDocs_.
+
+.. _ReadTheDocs: http://PyFields.readthedocs.io/en/latest/?badge=latest
+
 
 Installation
 ============
@@ -38,14 +43,29 @@ Just run:
 
    python setup.py install
 
+PyFields has some external dependencies (Matplotlib_, Scipy_, Unum_ and Numpy_) that should be installed automatically.
+
+
 You can run the tests with:
 
 .. code-block:: sh
 
    python setup.py pytest
 
+.. _Matplotlib: https://matplotlib.org/
+.. _Scipy: https://www.scipy.org/
+.. _Numpy: http://www.numpy.org/
+.. _Unum: https://bitbucket.org/kiv/unum/
+
+
+Basic usage
+===========
+
+Coming soon
+
+
 Report/contribute
-======================
+=================
 
 PyFields is hosted on Github_, you can report an issue_, ask your questions_ or contribute_ to this project there.
 
@@ -56,6 +76,7 @@ PyFields is hosted on Github_, you can report an issue_, ask your questions_ or 
 .. _questions: https://github.com/galaunay/PyFields/issues
 
 .. _contribute: https://github.com/galaunay/PyFields/pulls
+
 
 License
 =======
